@@ -1,4 +1,4 @@
-#Account Service
+# Account Service
 
 JetBrains Academy. Project: Anti-Fraud System.
 
