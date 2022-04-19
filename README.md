@@ -1,4 +1,4 @@
-#Account Service
+# Account Service
 
 JetBrains Academy. Project: Anti-Fraud System.
 
@@ -35,5 +35,4 @@ the HTTP basic authentication;
 
 For storing users and passwords, added a JDBC implementation of</br>
 UserDetailsService with an H2 database;
-
 
