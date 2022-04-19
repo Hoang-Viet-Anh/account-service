@@ -367,6 +367,125 @@ files:
       };
     }
   learner_created: false
+- name: src/account/security/RestAuthenticationEntryPoint.java
+  visible: true
+  learner_created: true
+- name: src/account/security/WebSecurityConfigurerImpl.java
+  visible: true
+  learner_created: true
+- name: src/account/security/UserDetailsServiceImpl.java
+  visible: true
+  learner_created: true
+- name: src/account/database/user/UserRepository.java
+  visible: true
+  learner_created: true
+- name: src/account/security/UserDetailsImpl.java
+  visible: true
+  learner_created: true
+- name: src/account/database/user/User.java
+  visible: true
+  text: |
+    package account;
+
+    import com.google.gson.JsonObject;
+
+    import javax.validation.constraints.Email;
+    import javax.validation.constraints.NotEmpty;
+    import javax.validation.constraints.NotNull;
+    import javax.validation.constraints.Pattern;
+
+    public class User {
+        @NotEmpty
+        private String name;
+
+        @NotEmpty
+        private String lastname;
+
+        @NotEmpty
+        @Email
+        @Pattern(regexp = ".+@acme.com$")
+        private String email;
+
+        @NotEmpty
+        private String password;
+
+        public User() {
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getLastname() {
+            return lastname;
+        }
+
+        public void setLastname(String lastname) {
+            this.lastname = lastname;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public JsonObject toJson() {
+            JsonObject object = new JsonObject();
+            object.addProperty("name", name);
+            object.addProperty("lastname", lastname);
+            object.addProperty("email", email);
+            return object;
+        }
+    }
+  learner_created: true
+- name: src/account/controllers/RegistrationController.java
+  visible: true
+  text: |
+    package account;
+
+    import com.google.gson.Gson;
+    import com.google.gson.GsonBuilder;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.web.bind.annotation.PostMapping;
+    import org.springframework.web.bind.annotation.RequestBody;
+    import org.springframework.web.bind.annotation.RestController;
+
+    import javax.validation.Valid;
+
+    @RestController
+    public class RegistrationController {
+
+        @PostMapping("api/auth/signup")
+        ResponseEntity<String> regUser(@Valid @RequestBody User user) {
+            Gson gson = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .create();
+            return new ResponseEntity<>(gson.toJson(user.toJson()), HttpStatus.OK);
+        }
+    }
+  learner_created: true
+- name: src/account/controllers/BusinessServiceController.java
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/projects/217/stages/1087/implement#comment
-status: Unchecked
-record: -1
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Tue, 19 Apr 2022 15:28:39 UTC
+record: 2

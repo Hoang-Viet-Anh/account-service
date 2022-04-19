@@ -278,10 +278,10 @@ files:
     management.endpoint.shutdown.enabled=true
     spring.jackson.serialization.INDENT_OUTPUT=true
   learner_created: false
-- name: src/account/RegistrationController.java
+- name: src/account/User.java
   visible: true
   learner_created: true
-- name: src/account/User.java
+- name: src/account/RegistrationController.java
   visible: true
   learner_created: true
 feedback_link: https://hyperskill.org/projects/217/stages/1086/implement#comment
@@ -289,4 +289,4 @@ status: Solved
 feedback:
   message: Congratulations!
   time: Tue, 19 Apr 2022 12:25:44 UTC
-record: -1
+record: 1

@@ -24,7 +24,16 @@ It should return a response in the JSON format (without the password field):
 "email": "<String value>"</br>
 }
 
-If the status is HTTP OK (200), then all fields are correct.
-If it's HTTP Bad Request (400), then something is wrong. 
-Our service accept only corporate emails that end with @acme.com.
-In this stage, we do not check the authentication, so the password field may contain anything (but not empty).
+If the status is HTTP OK (200), then all fields are correct.</br>
+If it's HTTP Bad Request (400), then something is wrong.</br>
+Our service accept only corporate emails that end with @acme.com.</br>
+In this stage, we do not check the authentication, so the password</br>
+field may contain anything (but not empty).
+
+In second stage, added the Spring security to project and configured</br>
+the HTTP basic authentication;
+
+For storing users and passwords, added a JDBC implementation of</br>
+UserDetailsService with an H2 database;
+
+
