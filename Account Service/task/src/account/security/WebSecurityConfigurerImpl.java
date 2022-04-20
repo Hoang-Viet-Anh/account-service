@@ -27,8 +27,9 @@ public class WebSecurityConfigurerImpl extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests() // manage access
                 .mvcMatchers(HttpMethod.GET, "/api/empl/payment").authenticated()
-                .mvcMatchers(HttpMethod.POST, "/api/signup").permitAll()
-               // .anyRequest().authenticated()
+                .mvcMatchers(HttpMethod.POST, "/api/auth/signup").permitAll()
+                .mvcMatchers(HttpMethod.POST, "/actuator/shutdown").permitAll()
+                .anyRequest().authenticated()
                 .and()
                 .httpBasic()
                 .authenticationEntryPoint(new RestAuthenticationEntryPoint()) // Handle auth error
@@ -41,6 +42,6 @@ public class WebSecurityConfigurerImpl extends WebSecurityConfigurerAdapter {
 
     @Bean
     public PasswordEncoder getEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(13);
     }
 }

@@ -36,3 +36,9 @@ the HTTP basic authentication;
 For storing users and passwords, added a JDBC implementation of</br>
 UserDetailsService with an H2 database;
 
+In third stage implemented the following password checks when registering a</br>
+user or changing a password:</br>
+Passwords contain at least 12 characters;</br>
+Check the submitted passwords against the set of breached passwords.</br>
+
+Used BCryptPasswordEncoder with a strength of  13 to store the passwords in the database.

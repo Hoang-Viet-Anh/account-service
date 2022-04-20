@@ -7,6 +7,7 @@ import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
 
 @Entity
 @Table(name = "user")
@@ -30,6 +31,7 @@ public class User {
     private String email;
 
     @NotEmpty
+    @Size(min = 12, message = "The password length must be at least 12 chars!")
     @Column(name = "password")
     private String password;
 
