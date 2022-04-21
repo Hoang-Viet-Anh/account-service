@@ -2,7 +2,7 @@
 
 JetBrains Academy. Project: Anti-Fraud System.
 
-</br>In third stage created 3 endpoints:
+</br>In fourth stage created 3 endpoints:
 
 POST api/acct/payments uploads payrolls;</br>
 PUT api/acct/payments changes the salary of a specific user;</br>
