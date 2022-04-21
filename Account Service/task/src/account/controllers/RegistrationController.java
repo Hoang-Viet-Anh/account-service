@@ -5,6 +5,7 @@ import account.database.user.PasswordRepository;
 import account.database.user.User;
 import account.database.user.UserRepository;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -20,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
 import java.util.Arrays;
+import java.util.List;
 
 @RestController
 public class RegistrationController {

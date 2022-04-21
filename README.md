@@ -2,43 +2,22 @@
 
 JetBrains Academy. Project: Anti-Fraud System.
 
-</br>In first stage, created SpringBoot web application for our service and 
-test it with one endpoint.
+</br>In third stage created 3 endpoints:
 
-Created SpringBoot application on the 28852 port;
+POST api/acct/payments uploads payrolls;</br>
+PUT api/acct/payments changes the salary of a specific user;</br>
+GET api/empl/payment gives access to the payroll of an employee.</br>
 
-Created the POST api/auth/signup endpoint that accepts data in the JSON format:
+Information about the salary of employees is transmitted as an array of JSON objects. This</br>
+operation must be transactional. That is, if an error occurs during an update, perform a rollback</br>
+to the original state. The following requirements are imposed on the data:
 
-{</br>
-"name": "<String value, not empty>",</br>
-"lastname": "<String value, not empty>",</br>
-"email": "<String value, not empty>",</br>
-"password": "<String value, not empty>"</br>
-}</br>
+An employee must be among the users of our service;</br>
+The period for which the salary is paid must be unique for each employee (for POST),</br>
+Salary is calculated in cents and cannot be negative.</br>
 
-It should return a response in the JSON format (without the password field):
+Changing the salary must be done in a separate corrective operation, PUT. The previous data</br>
+requirements remain, except for the uniqueness requirement. In this stage, we are not concerned</br>
+with an employee-period pair.
 
-{</br>
-"name": "<String value>",</br>
-"lastname": "<String value>",</br>
-"email": "<String value>"</br>
-}
 
-If the status is HTTP OK (200), then all fields are correct.</br>
-If it's HTTP Bad Request (400), then something is wrong.</br>
-Our service accept only corporate emails that end with @acme.com.</br>
-In this stage, we do not check the authentication, so the password</br>
-field may contain anything (but not empty).
-
-In second stage, added the Spring security to project and configured</br>
-the HTTP basic authentication;
-
-For storing users and passwords, added a JDBC implementation of</br>
-UserDetailsService with an H2 database;
-
-In third stage implemented the following password checks when registering a</br>
-user or changing a password:</br>
-Passwords contain at least 12 characters;</br>
-Check the submitted passwords against the set of breached passwords.</br>
-
-Used BCryptPasswordEncoder with a strength of  13 to store the passwords in the database.

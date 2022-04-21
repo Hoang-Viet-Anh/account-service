@@ -26,9 +26,10 @@ public class WebSecurityConfigurerImpl extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests() // manage access
-                .mvcMatchers(HttpMethod.GET, "/api/empl/payment").authenticated()
                 .mvcMatchers(HttpMethod.POST, "/api/auth/signup").permitAll()
                 .mvcMatchers(HttpMethod.POST, "/actuator/shutdown").permitAll()
+                .mvcMatchers(HttpMethod.POST, "/api/acct/payments").permitAll()
+                .mvcMatchers(HttpMethod.PUT, "/api/acct/payments").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .httpBasic()
