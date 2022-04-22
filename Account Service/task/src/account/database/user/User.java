@@ -1,13 +1,21 @@
 package account.database.user;
 
+import account.database.user.role.ListToStringConverter;
+import account.database.user.role.Role;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+
 import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 
 @Entity
 @Table(name = "user")
@@ -17,23 +25,30 @@ public class User {
     private long id;
 
     @NotEmpty
-    @Column(name = "name")
+    @Column(name = "name", nullable = false)
     private String name;
 
     @NotEmpty
-    @Column(name = "lastname")
+    @Column(name = "lastname", nullable = false)
     private String lastname;
 
     @NotEmpty
     @Email
     @Pattern(regexp = ".+@acme.com$", message = "Email should ends with @acme.com")
-    @Column(name = "email")
+    @Column(name = "email", nullable = false)
     private String email;
 
     @NotEmpty
     @Size(min = 12, message = "The password length must be at least 12 chars!")
-    @Column(name = "password")
+    @Column(name = "password", nullable = false)
     private String password;
+
+    @Convert(converter = ListToStringConverter.class)
+    @Column(name = "role", nullable = false)
+    private List<Role> roles = List.of(Role.USER);
+
+    @Column(name = "access", nullable = false)
+    private boolean access = true;
 
     public User() {
     }
@@ -78,6 +93,22 @@ public class User {
         this.password = password;
     }
 
+    public List<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(List<Role> roles) {
+        this.roles = roles;
+    }
+
+    public boolean isAccess() {
+        return access;
+    }
+
+    public void setAccess(boolean access) {
+        this.access = access;
+    }
+
     public String toJson() {
         Gson gson = new GsonBuilder()
                 .setPrettyPrinting()
@@ -87,6 +118,25 @@ public class User {
         object.addProperty("name", name);
         object.addProperty("lastname", lastname);
         object.addProperty("email", email);
+        JsonArray list = new JsonArray();
+        List<Role> roleList = new ArrayList<>(roles);
+        roleList.sort(Comparator.comparing(Enum::toString));
+        roleList.forEach(a -> list.add("ROLE_" + a.toString()));
+        object.add("roles", list);
         return gson.toJson(object);
+    }
+
+    public JsonObject toJsonObject() {
+        JsonObject object = new JsonObject();
+        object.addProperty("id", id);
+        object.addProperty("name", name);
+        object.addProperty("lastname", lastname);
+        object.addProperty("email", email);
+        JsonArray list = new JsonArray();
+        List<Role> roleList = new ArrayList<>(roles);
+        roleList.sort(Comparator.comparing(Enum::toString));
+        roleList.forEach(a -> list.add("ROLE_" + a.toString()));
+        object.add("roles", list);
+        return object;
     }
 }

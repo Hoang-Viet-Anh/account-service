@@ -930,6 +930,662 @@ files:
 
     }
   learner_created: false
+- name: src/account/database/payrolls/PayrollRepository.java
+  visible: true
+  text: |
+    package account.database.payrolls;
+
+    import org.springframework.data.repository.CrudRepository;
+
+    import javax.transaction.Transactional;
+    import java.util.List;
+
+    public interface PayrollRepository extends CrudRepository<Payroll, Long> {
+        boolean existsByEmployee(String email);
+
+        List<Payroll> findByEmployeeAndPeriod(String email, String period);
+        List<Payroll> findByEmployee(String email);
+        List<Payroll> findByEmployeeOrderByPeriodDesc(String email);
+    }
+  learner_created: true
+- name: src/account/controllers/BusinessServiceController.java
+  visible: true
+  text: |
+    package account.controllers;
+
+    import account.database.payrolls.Payroll;
+    import account.database.payrolls.PayrollRepository;
+    import account.database.user.User;
+    import account.database.user.UserRepository;
+    import com.google.gson.Gson;
+    import com.google.gson.JsonArray;
+    import com.google.gson.JsonObject;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.security.core.Authentication;
+    import org.springframework.validation.Errors;
+    import org.springframework.web.bind.annotation.*;
+    import org.springframework.web.server.ResponseStatusException;
+
+    import javax.validation.Valid;
+    import java.text.DateFormatSymbols;
+    import java.util.List;
+
+    @RestController
+    public class BusinessServiceController {
+        @Autowired
+        private UserRepository userRepository;
+
+        @Autowired
+        private PayrollRepository payrollRepository;
+
+        @Autowired
+        private Gson gson;
+
+        @PostMapping("/api/acct/payments")
+        ResponseEntity<String> addPayments(@Valid @RequestBody List<Payroll> payrollList, Errors errors) {
+            if (errors.hasErrors()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        errors.getFieldError().getDefaultMessage());
+            }
+            payrollList.forEach(a -> {
+                if (!userRepository.existsByEmailIgnoreCase(a.getEmployee())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee doesn't exists.");
+                }
+            });
+            try {
+                payrollRepository.saveAll(payrollList);
+            } catch (Exception e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The employee-period pair already exists.");
+            }
+            JsonObject object = new JsonObject();
+            object.addProperty("status", "Added successfully!");
+            return new ResponseEntity<>(gson.toJson(object), HttpStatus.OK);
+        }
+
+        @PutMapping("/api/acct/payments")
+        ResponseEntity<String> updatePayment(@Valid @RequestBody Payroll payroll, Errors errors) {
+            if (errors.hasErrors()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        errors.getFieldError().getDefaultMessage());
+            } else if (!userRepository.existsByEmailIgnoreCase(payroll.getEmployee())) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee doesn't exists.");
+            } else if (!payrollRepository.existsByEmployee(payroll.getEmployee())) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee salary doesn't exists.");
+            }
+            Payroll user = payrollRepository.findByEmployeeAndPeriod(payroll.getEmployee(), payroll.getPeriod()).get(0);
+            user.setSalary(payroll.getSalary());
+            payrollRepository.save(user);
+            JsonObject object = new JsonObject();
+            object.addProperty("status", "Updated successfully!");
+            return new ResponseEntity<>(gson.toJson(object), HttpStatus.OK);
+        }
+
+        @GetMapping("/api/empl/payment")
+        ResponseEntity<String> getPaymentsByPeriod(Authentication auth, @RequestParam(required = false) String period) {
+            List<Payroll> payrollList;
+            if (period != null) {
+                if (!period.matches("^(01|02|03|04|05|06|07|08|09|10|11|12)-[0-9]{4}$")) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Period has wrong format.");
+                } else {
+                    payrollList = payrollRepository.findByEmployeeAndPeriod(auth.getName(), period);
+                }
+            } else {
+                payrollList = payrollRepository.findByEmployeeOrderByPeriodDesc(auth.getName());
+            }
+
+            User user = userRepository.findByEmailIgnoreCase(auth.getName()).get(0);
+            JsonArray array = new JsonArray();
+            if (payrollList != null) {
+                for (Payroll data :
+                        payrollList) {
+                    int month = Integer.parseInt(data.getPeriod().substring(0, 2));
+                    String monthName = new DateFormatSymbols().getMonths()[month - 1]
+                            .concat(data.getPeriod().substring(2));
+                    String salary = String.format("%d dollar(s) %d cent(s)",
+                            data.getSalary() / 100,
+                            data.getSalary() % 100);
+                    JsonObject object = new JsonObject();
+                    object.addProperty("name", user.getName());
+                    object.addProperty("lastname", user.getLastname());
+                    object.addProperty("period", monthName);
+                    object.addProperty("salary", salary);
+                    array.add(object);
+                }
+            }
+            if (array.size() == 1) {
+                return new ResponseEntity<>(gson.toJson(array.get(0).getAsJsonObject()), HttpStatus.OK);
+            }
+            return new ResponseEntity<>(gson.toJson(array), HttpStatus.OK);
+        }
+    }
+  learner_created: true
+- name: src/account/Configuration.java
+  visible: true
+  text: |
+    package account;
+
+    import account.database.user.Password;
+    import account.database.user.PasswordRepository;
+    import com.google.gson.Gson;
+    import com.google.gson.GsonBuilder;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.context.annotation.Bean;
+    import org.springframework.stereotype.Component;
+
+    import java.util.ArrayList;
+    import java.util.List;
+
+    @org.springframework.context.annotation.Configuration
+    public class Configuration {
+        @Autowired
+        PasswordRepository passwordRepository;
+
+        @Bean
+        public Gson getGson() {
+            return new GsonBuilder()
+                    .setPrettyPrinting()
+                    .create();
+        }
+
+        @Bean
+        public void addHackedPasswords() {
+            List<String> passwords = List.of("PasswordForJanuary", "PasswordForFebruary", "PasswordForMarch", "PasswordForApril",
+                    "PasswordForMay", "PasswordForJune", "PasswordForJuly", "PasswordForAugust",
+                    "PasswordForSeptember", "PasswordForOctober", "PasswordForNovember", "PasswordForDecember");
+            List<Password> objects = new ArrayList<>();
+            passwords.forEach(a -> objects.add(new Password(a)));
+            objects.forEach(a -> {
+                try {
+                    if (!passwordRepository.existsByPassword(a.getPassword())) {
+                        passwordRepository.save(a);
+                    }
+                } catch (Exception ignore) {}
+            });
+        }
+    }
+  learner_created: true
+- name: src/account/security/UserDetailsImpl.java
+  visible: true
+  text: |
+    package account.security;
+
+    import account.database.user.User;
+    import org.springframework.security.core.GrantedAuthority;
+    import org.springframework.security.core.userdetails.UserDetails;
+
+    import java.util.Collection;
+
+    public class UserDetailsImpl implements UserDetails {
+        private String username;
+        private String password;
+
+        public UserDetailsImpl(User user) {
+            username = user.getEmail();
+            password = user.getPassword();
+        }
+
+        @Override
+        public Collection<? extends GrantedAuthority> getAuthorities() {
+            return null;
+        }
+
+        @Override
+        public String getPassword() {
+            return password;
+        }
+
+        @Override
+        public String getUsername() {
+            return username;
+        }
+
+        @Override
+        public boolean isAccountNonExpired() {
+            return true;
+        }
+
+        @Override
+        public boolean isAccountNonLocked() {
+            return true;
+        }
+
+        @Override
+        public boolean isCredentialsNonExpired() {
+            return true;
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return true;
+        }
+    }
+  learner_created: true
+- name: src/account/database/payrolls/Payroll.java
+  visible: true
+  text: |
+    package account.database.payrolls;
+
+    import javax.persistence.*;
+    import javax.validation.constraints.Min;
+    import javax.validation.constraints.NotEmpty;
+    import javax.validation.constraints.NotNull;
+    import javax.validation.constraints.Pattern;
+
+    @Entity
+    @Table(name = "payrolls", uniqueConstraints = {@UniqueConstraint(columnNames = {"employee", "period"})})
+    public class Payroll {
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private long id;
+
+        @NotEmpty
+        @Column(name = "employee")
+        private String employee;
+
+        @NotEmpty
+        @Column(name = "period")
+        @Pattern(regexp = "^(01|02|03|04|05|06|07|08|09|10|11|12)-[0-9]{4}$")
+        private String period;
+
+        @NotNull
+        @Min(value = 0, message = "The salary must be non-negative.")
+        @Column(name = "salary")
+        private long salary;
+
+        public Payroll() {
+        }
+
+        public long getId() {
+            return id;
+        }
+
+        public void setId(long id) {
+            this.id = id;
+        }
+
+        public String getEmployee() {
+            return employee;
+        }
+
+        public void setEmployee(String employee) {
+            this.employee = employee;
+        }
+
+        public String getPeriod() {
+            return period;
+        }
+
+        public void setPeriod(String period) {
+            this.period = period;
+        }
+
+        public long getSalary() {
+            return salary;
+        }
+
+        public void setSalary(long salary) {
+            this.salary = salary;
+        }
+
+
+    }
+  learner_created: true
+- name: src/account/controllers/RegistrationController.java
+  visible: true
+  text: |
+    package account.controllers;
+
+    import account.database.user.Password;
+    import account.database.user.PasswordRepository;
+    import account.database.user.User;
+    import account.database.user.UserRepository;
+    import com.google.gson.Gson;
+    import com.google.gson.JsonArray;
+    import com.google.gson.JsonObject;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.context.support.DefaultMessageSourceResolvable;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.security.core.Authentication;
+    import org.springframework.security.crypto.password.PasswordEncoder;
+    import org.springframework.validation.Errors;
+    import org.springframework.web.bind.annotation.PostMapping;
+    import org.springframework.web.bind.annotation.RequestBody;
+    import org.springframework.web.bind.annotation.RestController;
+    import org.springframework.web.server.ResponseStatusException;
+
+    import javax.validation.Valid;
+    import java.util.Arrays;
+    import java.util.List;
+
+    @RestController
+    public class RegistrationController {
+        @Autowired
+        private UserRepository userRepository;
+
+        @Autowired
+        private PasswordRepository passwordRepository;
+
+        @Autowired
+        private PasswordEncoder encoder;
+
+        @Autowired
+        private Gson gson;
+
+        @PostMapping("/api/auth/signup")
+        ResponseEntity<String> regUser(@Valid @RequestBody User user, Errors errors) {
+            if (errors.hasErrors()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        errors.getFieldError().getDefaultMessage());
+            } else if (userRepository.existsByEmailIgnoreCase(user.getEmail())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User exist!");
+            } else if (passwordRepository.existsByPassword(user.getPassword())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password is in the hacker's database!");
+            }
+            user.setEmail(user.getEmail().toLowerCase());
+            user.setPassword(encoder.encode(user.getPassword()));
+            user = userRepository.save(user);
+            return new ResponseEntity<>(user.toJson(), HttpStatus.OK);
+        }
+
+        @PostMapping("/api/auth/changepass")
+        ResponseEntity<String> changePassword(Authentication auth,@Valid @RequestBody Password password, Errors errors) {
+            User user = userRepository.findByEmailIgnoreCase(auth.getName()).get(0);
+            if (errors.hasErrors()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        errors.getFieldError().getDefaultMessage());
+            } else if (passwordRepository.existsByPassword(password.getPassword())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The password is in the hacker's database!");
+            } else if (encoder.matches(password.getPassword(),
+                            user.getPassword())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The passwords must be different!");
+            }
+            user.setPassword(encoder.encode(password.getPassword()));
+            user = userRepository.save(user);
+            JsonObject object = new JsonObject();
+            object.addProperty("email", user.getEmail());
+            object.addProperty("status", "The password has been updated successfully");
+            return new ResponseEntity<>(gson.toJson(object), HttpStatus.OK);
+        }
+    }
+  learner_created: true
+- name: src/account/security/WebSecurityConfigurerImpl.java
+  visible: true
+  text: |
+    package account.security;
+
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.context.annotation.Bean;
+    import org.springframework.http.HttpMethod;
+    import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+    import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+    import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+    import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+    import org.springframework.security.config.http.SessionCreationPolicy;
+    import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+    import org.springframework.security.crypto.password.PasswordEncoder;
+
+    @EnableWebSecurity
+    public class WebSecurityConfigurerImpl extends WebSecurityConfigurerAdapter {
+        @Autowired
+        UserDetailsServiceImpl userDetailsService;
+
+        @Override
+        protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+            auth.userDetailsService(userDetailsService)
+                    .passwordEncoder(getEncoder());
+
+        }
+
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+            http.authorizeRequests() // manage access
+                    .mvcMatchers(HttpMethod.POST, "/api/auth/signup").permitAll()
+                    .mvcMatchers(HttpMethod.POST, "/actuator/shutdown").permitAll()
+                    .mvcMatchers(HttpMethod.POST, "/api/acct/payments").permitAll()
+                    .mvcMatchers(HttpMethod.PUT, "/api/acct/payments").permitAll()
+                    .anyRequest().authenticated()
+                    .and()
+                    .httpBasic()
+                    .authenticationEntryPoint(new RestAuthenticationEntryPoint()) // Handle auth error
+                    .and()
+                    .csrf().disable().headers().frameOptions().disable() // for Postman, the H2 console
+                    .and()
+                    .sessionManagement()
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS); // no session
+        }
+
+        @Bean
+        public PasswordEncoder getEncoder() {
+            return new BCryptPasswordEncoder(13);
+        }
+    }
+  learner_created: true
+- name: src/account/security/UserDetailsServiceImpl.java
+  visible: true
+  text: |-
+    package account.security;
+
+    import account.database.user.User;
+    import account.database.user.UserRepository;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.security.core.userdetails.UserDetails;
+    import org.springframework.security.core.userdetails.UserDetailsService;
+    import org.springframework.security.core.userdetails.UsernameNotFoundException;
+    import org.springframework.stereotype.Service;
+
+    @Service
+    public class UserDetailsServiceImpl implements UserDetailsService {
+        @Autowired
+        UserRepository userRepo;
+
+        @Override
+        public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+            User user = null;
+            user = userRepo.findByEmailIgnoreCase(username).isEmpty() ? null :
+                    userRepo.findByEmailIgnoreCase(username).get(0);
+            if (user == null) {
+                throw new UsernameNotFoundException("Not found: " + username);
+            }
+            return new UserDetailsImpl(user);
+        }
+    }
+  learner_created: true
+- name: src/account/database/user/UserRepository.java
+  visible: true
+  text: |
+    package account.database.user;
+
+    import org.springframework.data.repository.CrudRepository;
+
+    import javax.transaction.Transactional;
+    import java.util.List;
+
+    public interface UserRepository extends CrudRepository<User, Long> {
+        List<User> findByEmailIgnoreCase(String email);
+
+        @Transactional
+        void deleteByEmail(String email);
+
+        boolean existsByEmailIgnoreCase(String email);
+    }
+  learner_created: true
+- name: src/account/database/user/User.java
+  visible: true
+  text: |
+    package account.database.user;
+
+    import com.google.gson.Gson;
+    import com.google.gson.GsonBuilder;
+    import com.google.gson.JsonObject;
+    import javax.persistence.*;
+    import javax.validation.constraints.Email;
+    import javax.validation.constraints.NotEmpty;
+    import javax.validation.constraints.Pattern;
+    import javax.validation.constraints.Size;
+
+    @Entity
+    @Table(name = "user")
+    public class User {
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private long id;
+
+        @NotEmpty
+        @Column(name = "name")
+        private String name;
+
+        @NotEmpty
+        @Column(name = "lastname")
+        private String lastname;
+
+        @NotEmpty
+        @Email
+        @Pattern(regexp = ".+@acme.com$", message = "Email should ends with @acme.com")
+        @Column(name = "email")
+        private String email;
+
+        @NotEmpty
+        @Size(min = 12, message = "The password length must be at least 12 chars!")
+        @Column(name = "password")
+        private String password;
+
+        public User() {
+        }
+
+        public long getId() {
+            return id;
+        }
+
+        public void setId(long id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getLastname() {
+            return lastname;
+        }
+
+        public void setLastname(String lastname) {
+            this.lastname = lastname;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public String toJson() {
+            Gson gson = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .create();
+            JsonObject object = new JsonObject();
+            object.addProperty("id", id);
+            object.addProperty("name", name);
+            object.addProperty("lastname", lastname);
+            object.addProperty("email", email);
+            return gson.toJson(object);
+        }
+    }
+  learner_created: true
+- name: src/account/controllers/AdministrationController.java
+  visible: true
+  learner_created: true
+- name: src/account/database/password/PasswordRepository.java
+  visible: true
+  text: |
+    package account.database.user;
+
+
+    import org.springframework.data.repository.CrudRepository;
+
+    public interface PasswordRepository extends CrudRepository<Password, Long> {
+        boolean existsByPassword(String password);
+    }
+  learner_created: true
+- name: src/account/database/password/Password.java
+  visible: true
+  text: |
+    package account.database.user;
+
+    import com.fasterxml.jackson.annotation.JsonProperty;
+
+    import javax.persistence.*;
+    import javax.validation.constraints.NotEmpty;
+    import javax.validation.constraints.Size;
+
+    @Entity
+    @Table(name = "hacked_passwords")
+    public class Password {
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private long id;
+
+        @JsonProperty("new_password")
+        @NotEmpty
+        @Size(min = 12, message = "Password length must be 12 chars minimum!")
+        @Column(name = "password", unique = true)
+        private String password;
+
+        public Password() {
+        }
+
+        public Password(String password) {
+            this.password = password;
+        }
+
+        public long getId() {
+            return id;
+        }
+
+        public void setId(long id) {
+            this.id = id;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+    }
+  learner_created: true
+- name: src/account/database/user/role/Role.java
+  visible: true
+  learner_created: true
+- name: src/account/database/user/role/ListToStringConverter.java
+  visible: true
+  learner_created: true
+- name: src/account/database/user/role/Opration.java
+  visible: true
+  learner_created: true
+- name: src/account/database/user/role/ChangeRole.java
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/16605#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Fri, 22 Apr 2022 17:22:10 UTC
 record: -1

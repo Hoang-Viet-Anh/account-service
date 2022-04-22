@@ -1,12 +1,11 @@
 package account;
 
-import account.database.user.Password;
-import account.database.user.PasswordRepository;
+import account.database.password.Password;
+import account.database.password.PasswordRepository;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;

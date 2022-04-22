@@ -2,22 +2,30 @@ package account.security;
 
 import account.database.user.User;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 public class UserDetailsImpl implements UserDetails {
     private String username;
     private String password;
+    private List<GrantedAuthority> roles;
+    private boolean access = false;
 
     public UserDetailsImpl(User user) {
         username = user.getEmail();
         password = user.getPassword();
+        access = user.isAccess();
+        roles = new ArrayList<>();
+        user.getRoles().forEach(a -> roles.add(new SimpleGrantedAuthority("ROLE_" + a.toString())));
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
+        return roles;
     }
 
     @Override
@@ -37,7 +45,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return access;
     }
 
     @Override

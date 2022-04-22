@@ -1,4 +1,4 @@
-package account.database.user;
+package account.database.password;
 
 
 import org.springframework.data.repository.CrudRepository;

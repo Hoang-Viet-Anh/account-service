@@ -82,7 +82,7 @@ public class BusinessServiceController {
             payrollList = payrollRepository.findByEmployeeOrderByPeriodDesc(auth.getName());
         }
 
-        User user = userRepository.findByEmailIgnoreCase(auth.getName()).get(0);
+        User user = userRepository.findByEmailIgnoreCase(auth.getName());
         JsonArray array = new JsonArray();
         if (payrollList != null) {
             for (Payroll data :
