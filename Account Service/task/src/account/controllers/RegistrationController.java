@@ -1,15 +1,20 @@
 package account.controllers;
 
+import account.database.log.Actions;
+import account.database.log.Log;
+import account.database.log.LogRepository;
 import account.database.password.Password;
 import account.database.password.PasswordRepository;
 import account.database.user.*;
 import account.database.user.role.Role;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import org.apache.logging.log4j.LogBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -30,6 +36,9 @@ public class RegistrationController {
 
     @Autowired
     private PasswordEncoder encoder;
+
+    @Autowired
+    private LogRepository logRepository;
 
     @Autowired
     private Gson gson;
@@ -51,6 +60,17 @@ public class RegistrationController {
             user.setAccess(true);
         }
         user = userRepository.save(user);
+        String username = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+        logRepository.save(new Log.Builder()
+                .setDate(new Date())
+                .setAction(Actions.CREATE_USER)
+                .setSubject(username.contains("anonymous") ? "Anonymous" : username)
+                .setObject(user.getEmail())
+                .setPath("/api/auth/signup")
+                .build());
         return new ResponseEntity<>(user.toJson(), HttpStatus.OK);
     }
 
@@ -71,6 +91,13 @@ public class RegistrationController {
         JsonObject object = new JsonObject();
         object.addProperty("email", user.getEmail());
         object.addProperty("status", "The password has been updated successfully");
+        logRepository.save(new Log.Builder()
+                .setDate(new Date())
+                .setAction(Actions.CHANGE_PASSWORD)
+                .setSubject(auth.getName())
+                .setObject(user.getEmail())
+                .setPath("/api/auth/changepass")
+                .build());
         return new ResponseEntity<>(gson.toJson(object), HttpStatus.OK);
     }
 }

@@ -8,7 +8,7 @@ public class ChangeRole {
     private String user;
 
     @NotEmpty
-    @Pattern(regexp = "ANONYMOUS|USER|ACCOUNTANT|ADMINISTRATOR", message = "Role not found!")
+    @Pattern(regexp = "ANONYMOUS|USER|ACCOUNTANT|ADMINISTRATOR|AUDITOR", message = "Role not found!")
     private String role;
 
     @NotEmpty

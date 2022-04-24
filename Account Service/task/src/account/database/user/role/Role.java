@@ -1,7 +1,7 @@
 package account.database.user.role;
 
 public enum Role {
-    ACCOUNTANT(2), ADMINISTRATOR(1), ANONYMOUS(3), USER(2);
+    ACCOUNTANT(2), ADMINISTRATOR(1), ANONYMOUS(3), USER(2), AUDITOR(2);
 
     private int group;
 

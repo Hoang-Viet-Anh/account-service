@@ -1,5 +1,6 @@
 package account.controllers;
 
+import account.database.log.LogRepository;
 import account.database.payrolls.Payroll;
 import account.database.payrolls.PayrollRepository;
 import account.database.user.User;
@@ -26,6 +27,9 @@ public class BusinessServiceController {
 
     @Autowired
     private PayrollRepository payrollRepository;
+
+    @Autowired
+    private LogRepository logRepository;
 
     @Autowired
     private Gson gson;
@@ -104,6 +108,13 @@ public class BusinessServiceController {
         if (array.size() == 1) {
             return new ResponseEntity<>(gson.toJson(array.get(0).getAsJsonObject()), HttpStatus.OK);
         }
+        return new ResponseEntity<>(gson.toJson(array), HttpStatus.OK);
+    }
+
+    @GetMapping("/api/security/events")
+    ResponseEntity<String> getLog() {
+        JsonArray array = new JsonArray();
+        logRepository.findAll().forEach(a -> array.add(a.toJsonObject()));
         return new ResponseEntity<>(gson.toJson(array), HttpStatus.OK);
     }
 }

@@ -1,6 +1,11 @@
 package account.security;
 
+import account.database.log.Actions;
+import account.database.log.Log;
+import account.database.log.LogRepository;
 import account.database.user.User;
+import account.database.user.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,7 +18,7 @@ public class UserDetailsImpl implements UserDetails {
     private String username;
     private String password;
     private List<GrantedAuthority> roles;
-    private boolean access = false;
+    private boolean access;
 
     public UserDetailsImpl(User user) {
         username = user.getEmail();

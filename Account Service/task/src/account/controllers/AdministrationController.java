@@ -1,5 +1,10 @@
 package account.controllers;
 
+import account.database.log.Actions;
+import account.database.log.Log;
+import account.database.log.LogRepository;
+import account.database.user.access.ActionType;
+import account.database.user.access.UserAccess;
 import account.database.user.role.ChangeRole;
 import account.database.user.role.Opration;
 import account.database.user.role.Role;
@@ -11,12 +16,15 @@ import com.google.gson.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 @RestController
 public class AdministrationController {
@@ -24,10 +32,13 @@ public class AdministrationController {
     private UserRepository userRepository;
 
     @Autowired
+    private LogRepository logRepository;
+
+    @Autowired
     private Gson gson;
 
     @PutMapping("/api/admin/user/role")
-    ResponseEntity<String> setUserRole(@Valid @RequestBody ChangeRole changes, Errors errors) {
+    ResponseEntity<String> setUserRole(Authentication auth, @Valid @RequestBody ChangeRole changes, Errors errors) {
         if (errors.hasErrors()) {
             if (errors.getFieldError().getDefaultMessage().contains("Role")) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -71,6 +82,21 @@ public class AdministrationController {
             }
             user.setRoles(roleList);
             user = userRepository.save(user);
+            String operationObject = changes.getOperation()
+                    .charAt(0) +
+                    changes.getOperation()
+                            .substring(1)
+                            .toLowerCase();
+            logRepository.save(new Log.Builder()
+                    .setDate(new Date())
+                    .setAction(Actions.valueOf(changes.getOperation().toString() + "_ROLE"))
+                    .setSubject(auth.getName())
+                    .setObject(String.format("%s role %s %s %s",
+                            operationObject, changes.getRole(),
+                            changes.getOprationType().equals(Opration.REMOVE) ? "from" : "to",
+                            changes.getUser().toLowerCase()))
+                    .setPath("/api/admin/user/role")
+                    .build());
             return new ResponseEntity<>(user.toJson(), HttpStatus.OK);
         }
     }
@@ -87,7 +113,7 @@ public class AdministrationController {
     }
 
     @DeleteMapping("/api/admin/user/{email}")
-    ResponseEntity<String> deleteUser(@PathVariable String email)   {
+    ResponseEntity<String> deleteUser(Authentication auth, @PathVariable String email)   {
         if (!userRepository.existsByEmailIgnoreCase(email)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found!");
         } else if (userRepository.findByEmailIgnoreCase(email)
@@ -99,9 +125,51 @@ public class AdministrationController {
             JsonObject response = new JsonObject();
             response.addProperty("user", email);
             response.addProperty("status", "Deleted successfully!");
+            logRepository.save(new Log.Builder()
+                    .setDate(new Date())
+                    .setAction(Actions.DELETE_USER)
+                    .setSubject(auth.getName())
+                    .setObject(email.toLowerCase())
+                    .setPath("/api/admin/user")
+                    .build());
             return new ResponseEntity<>(gson.toJson(response), HttpStatus.OK);
         }
     }
 
-
+    @PutMapping("/api/admin/user/access")
+    ResponseEntity<String> setAccess(Authentication auth, @Valid @RequestBody UserAccess access, Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    errors.getFieldError().getDefaultMessage());
+        } else if (!userRepository.existsByEmailIgnoreCase(access.getUser())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found!");
+        } else if (userRepository.findByEmailIgnoreCase(access.getUser())
+                .getRoles().contains(Role.ADMINISTRATOR)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can't lock the ADMINISTRATOR!");
+        } else {
+            access.setActionType(ActionType.valueOf(access.getOperation()));
+            User user = userRepository.findByEmailIgnoreCase(access.getUser());
+            if (access.getActionType().equals(ActionType.UNLOCK)) {
+                user.setAccess(true);
+            } else if (access.getActionType().equals(ActionType.LOCK)) {
+                user.setAccess(false);
+            }
+            user = userRepository.save(user);
+            JsonObject object = new JsonObject();
+            object.addProperty("status",
+                    String.format("User %s %sed!", access.getUser().toLowerCase(),
+                            access.getActionType().toString().toLowerCase()));
+            String action = access.getActionType().toString();
+            logRepository.save(new Log.Builder()
+                    .setDate(new Date())
+                    .setAction(Actions.valueOf(access.getActionType().toString() + "_USER"))
+                    .setSubject(auth.getName())
+                    .setObject(String.format("%s user %s",
+                            action.charAt(0) + action.substring(1).toLowerCase(),
+                            access.getUser().toLowerCase()))
+                    .setPath("/api/admin/user/access")
+                    .build());
+            return new ResponseEntity<>(gson.toJson(object), HttpStatus.OK);
+        }
+    }
 }

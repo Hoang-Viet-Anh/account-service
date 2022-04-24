@@ -50,6 +50,9 @@ public class User {
     @Column(name = "access", nullable = false)
     private boolean access = true;
 
+    @Column(name = "login_attempts")
+    private int attempts = 0;
+
     public User() {
     }
 
@@ -107,6 +110,23 @@ public class User {
 
     public void setAccess(boolean access) {
         this.access = access;
+    }
+
+    public int getAttempts() {
+        return attempts;
+    }
+
+    public User setAttempts(int attempts) {
+        this.attempts = attempts;
+        return this;
+    }
+
+    public void increaseAttempt() {
+        attempts++;
+    }
+
+    public void decreaseAttempts() {
+        attempts--;
     }
 
     public String toJson() {
